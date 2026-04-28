@@ -1,6 +1,5 @@
-import express from "express";
-import cors from "cors";
-import { v4 as uuidv4 } from "uuid";
+const express = require("express");
+const cors = require("cors");
 
 const app = express();
 app.use(cors());
@@ -8,17 +7,17 @@ app.use(express.json());
 
 let orders = [];
 
-// CREATE ORDER
+// ➕ Create Order
 app.post("/orders", (req, res) => {
   const { customerName, phone, items } = req.body;
 
   const total = items.reduce(
-    (sum, item) => sum + item.quantity * item.price,
+    (sum, i) => sum + i.quantity * i.price,
     0
   );
 
   const order = {
-    id: uuidv4(),
+    id: Date.now(),
     customerName,
     phone,
     items,
@@ -30,41 +29,52 @@ app.post("/orders", (req, res) => {
   res.json(order);
 });
 
-// GET ORDERS (FILTER)
+// 🔍 Get Orders (Search + Filter)
 app.get("/orders", (req, res) => {
-  const { status, search } = req.query;
+  let { search, status } = req.query;
 
-  let result = orders;
-
-  if (status) {
-    result = result.filter(o => o.status === status);
-  }
+  let result = [...orders];
 
   if (search) {
-    result = result.filter(o =>
-      o.customerName.toLowerCase().includes(search.toLowerCase()) ||
-      o.phone.includes(search)
+    const s = search.toLowerCase();
+    result = result.filter(
+      (o) =>
+        o.customerName.toLowerCase().includes(s) ||
+        o.phone.includes(s)
     );
+  }
+
+  if (status) {
+    result = result.filter((o) => o.status === status);
   }
 
   res.json(result);
 });
 
-// UPDATE STATUS
+// 🔄 Update Status
 app.put("/orders/:id/status", (req, res) => {
   const { status } = req.body;
 
-  const order = orders.find(o => o.id === req.params.id);
-  if (!order) return res.status(404).send("Order not found");
+  orders = orders.map((o) =>
+    o.id == req.params.id ? { ...o, status } : o
+  );
 
-  order.status = status;
-  res.json(order);
+  res.json({ message: "Updated" });
 });
 
-// DASHBOARD
+// ❌ Delete Order
+app.delete("/orders/:id", (req, res) => {
+  orders = orders.filter((o) => o.id != req.params.id);
+  res.json({ message: "Deleted" });
+});
+
+// 📊 Dashboard
 app.get("/dashboard", (req, res) => {
   const totalOrders = orders.length;
-  const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
+  const totalRevenue = orders.reduce(
+    (sum, o) => sum + o.total,
+    0
+  );
 
   const statusCount = {
     RECEIVED: 0,
@@ -73,9 +83,13 @@ app.get("/dashboard", (req, res) => {
     DELIVERED: 0,
   };
 
-  orders.forEach(o => statusCount[o.status]++);
+  orders.forEach((o) => {
+    statusCount[o.status]++;
+  });
 
   res.json({ totalOrders, totalRevenue, statusCount });
 });
 
-app.listen(5000, () => console.log("Server running on http://localhost:5000"));
+app.listen(5000, () =>
+  console.log("Server running on port 5000")
+);
