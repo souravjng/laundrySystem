@@ -16,8 +16,8 @@ export default function App() {
     <div className="min-h-screen flex bg-gray-100">
       
       {/* Sidebar */}
-      <div className="w-64 bg-white border-r p-5">
-        <h1 className="text-2xl font-bold text-blue-600 mb-8">
+      <div className="w-64 bg-white border-r border-gray-300 p-5">
+        <h1 className="text-2xl font-bold text-blue-900 mb-8">
           Laundry Admin
         </h1>
 
@@ -26,10 +26,10 @@ export default function App() {
             <button
               key={item.key}
               onClick={() => setPage(item.key)}
-              className={`w-full text-left px-4 py-2 rounded-lg transition ${
+              className={`w-full text-left px-4 py-2 rounded-lg transition cursor-pointer ${
                 page === item.key
-                  ? "bg-blue-600 text-white"
-                  : "hover:bg-gray-100"
+                  ? "bg-blue-500 text-white"
+                  : "hover:bg-gray-100 border border-gray-200"
               }`}
             >
               {item.name}
@@ -42,13 +42,13 @@ export default function App() {
       <div className="flex-1 flex flex-col">
         
         {/* Topbar */}
-        <div className="bg-white p-4 border-b flex justify-between">
+        <div className="bg-white p-4 border-b border-gray-300 flex justify-between">
           <h2 className="font-semibold capitalize">{page}</h2>
           <p className="text-sm text-gray-500">Admin Panel</p>
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="p-6 border-t border-gray-200">
           {page === "dashboard" && <Dashboard />}
           {page === "orders" && <Orders />}
           {page === "create" && <CreateOrder />}

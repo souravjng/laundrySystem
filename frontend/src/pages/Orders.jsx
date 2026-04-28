@@ -43,7 +43,7 @@ export default function Orders() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="bg-white p-6 rounded-xl shadow-sm border"
+      className="bg-white p-6 rounded-xl shadow-sm border border-gray-300"
     >
       <h2 className="text-xl font-semibold mb-4">Orders</h2>
 

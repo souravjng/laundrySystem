@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://localhost:5000",
+  baseURL: "https://laundrysystem-58t9.onrender.com",
 });
 
 export const createOrder = (data) => API.post("/orders", data);
