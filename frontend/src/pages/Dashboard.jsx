@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getDashboard } from "../services/api";
+import { getDashboard, getOrders } from "../services/api";
 import Card from "../components/Card";
 import {
   BarChart,
@@ -12,12 +12,17 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { Download } from "lucide-react";
+import * as XLSX from "xlsx";
+import toast from "react-hot-toast";
 
 export default function Dashboard() {
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    getDashboard().then((res) => setData(res.data));
+    getDashboard()
+      .then((res) => setData(res.data))
+      .catch(() => setData({}));
   }, []);
 
   const statusStyles = {
@@ -29,66 +34,100 @@ export default function Dashboard() {
 
   const chartColors = ["#3B82F6", "#F59E0B", "#8B5CF6", "#22C55E"];
 
-  // Prepare chart data
-  const chartData = data
-    ? Object.entries(data.statusCount).map(([key, val]) => ({
-        name: key,
-        value: val,
-      }))
-    : [];
+  // ✅ SAFE DEFAULTS
+  const statusCount = data?.statusCount || {
+    RECEIVED: 0,
+    PROCESSING: 0,
+    READY: 0,
+    DELIVERED: 0,
+  };
 
-  // Skeleton
+  const totalOrders = data?.totalOrders || 0;
+  const totalRevenue = data?.totalRevenue || 0;
+
+  const chartData = Object.entries(statusCount).map(
+    ([key, val]) => ({
+      name: key,
+      value: val,
+    })
+  );
+
+  // ✅ EXCEL DOWNLOAD FUNCTION
+  const downloadExcel = async () => {
+    try {
+      const res = await getOrders(); // get all orders
+      const orders = res.data || [];
+
+      if (orders.length === 0) {
+        toast.error("No data to download");
+        return;
+      }
+
+      // format data
+      const formatted = orders.map((o) => ({
+        Customer: o.customerName,
+        Phone: o.phone,
+        Total: o.total,
+        Status: o.status,
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(formatted);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Orders");
+
+      XLSX.writeFile(workbook, "Orders_Data.xlsx");
+
+      toast.success("Excel downloaded");
+    } catch (err) {
+      toast.error("Download failed");
+    }
+  };
+
+  // ✅ Loading UI
   if (!data) {
     return (
-      <div>
-        <h2 className="text-xl font-semibold mb-6">
-          Dashboard Overview
-        </h2>
-
-        <div className="grid grid-cols-3 gap-6 mb-8">
-          {[...Array(3)].map((_, i) => (
-            <div
-              key={i}
-              className="bg-white p-6 rounded-xl border border-gray-300 animate-pulse"
-            >
-              <div className="h-4 bg-gray-200 mb-4"></div>
-              <div className="h-8 bg-gray-300"></div>
-            </div>
-          ))}
-        </div>
-
-        <div className="bg-white p-6 rounded-xl border border-gray-300 animate-pulse">
-          <div className="h-40 bg-gray-200 rounded"></div>
-        </div>
+      <div className="p-6 text-gray-500 animate-pulse">
+        Loading dashboard...
       </div>
     );
   }
 
   return (
     <div>
-      <h2 className="text-xl font-semibold mb-6">
-        Dashboard Overview
-      </h2>
+      {/* Header with Excel Button */}
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-semibold">
+          Dashboard Overview
+        </h2>
 
-      {/* Top Cards */}
+        {/* ✅ EXCEL BUTTON (GREEN ICON ONLY) */}
+        <button
+          onClick={downloadExcel}
+          className="bg-green-600 hover:bg-green-700 text-white p-2 rounded-lg flex items-center justify-center"
+        >
+          <Download size={18} />
+        </button>
+      </div>
+
+      {/* Cards */}
       <div className="grid grid-cols-3 gap-6">
-        <Card title="Total Orders" value={data.totalOrders} />
-        <Card title="Total Revenue" value={`₹${data.totalRevenue}`} />
+        <Card title="Total Orders" value={totalOrders} />
+        <Card title="Revenue" value={`₹${totalRevenue}`} />
         <Card
-          title="Delivered Orders"
-          value={data.statusCount.DELIVERED}
+          title="Delivered"
+          value={statusCount.DELIVERED}
         />
       </div>
 
-      {/* Status Cards */}
+      {/* Status Section */}
       <div className="mt-8 bg-white p-6 rounded-xl border border-gray-300 shadow-sm">
         <h3 className="font-semibold mb-4">Order Status</h3>
 
         <div className="grid grid-cols-4 gap-4">
-          {Object.entries(data.statusCount).map(([key, val]) => (
+          {Object.entries(statusCount).map(([key, val]) => (
             <div
               key={key}
-              className={`p-4 rounded-xl text-center border border-gray-200 transition hover:scale-105 ${statusStyles[key]}`}
+              className={`p-4 rounded-xl text-center border border-gray-200 ${statusStyles[key]}`}
             >
               <p className="text-sm">{key}</p>
               <p className="text-xl font-bold">{val}</p>
@@ -97,14 +136,11 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Charts Section */}
+      {/* Charts */}
       <div className="mt-8 grid grid-cols-2 gap-6">
-        
         {/* Bar Chart */}
         <div className="bg-white p-6 rounded-xl border border-gray-300 shadow-sm">
-          <h3 className="font-semibold mb-4">
-            Orders by Status (Bar)
-          </h3>
+          <h3 className="mb-4 font-semibold">Orders by Status</h3>
 
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={chartData}>
@@ -112,10 +148,10 @@ export default function Dashboard() {
               <YAxis />
               <Tooltip />
               <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                {chartData.map((entry, index) => (
+                {chartData.map((_, i) => (
                   <Cell
-                    key={index}
-                    fill={chartColors[index % chartColors.length]}
+                    key={i}
+                    fill={chartColors[i % chartColors.length]}
                   />
                 ))}
               </Bar>
@@ -125,9 +161,7 @@ export default function Dashboard() {
 
         {/* Pie Chart */}
         <div className="bg-white p-6 rounded-xl border border-gray-300 shadow-sm">
-          <h3 className="font-semibold mb-4">
-            Orders Distribution
-          </h3>
+          <h3 className="mb-4 font-semibold">Distribution</h3>
 
           <ResponsiveContainer width="100%" height={250}>
             <PieChart>
@@ -138,10 +172,10 @@ export default function Dashboard() {
                 outerRadius={80}
                 label
               >
-                {chartData.map((entry, index) => (
+                {chartData.map((_, i) => (
                   <Cell
-                    key={index}
-                    fill={chartColors[index % chartColors.length]}
+                    key={i}
+                    fill={chartColors[i % chartColors.length]}
                   />
                 ))}
               </Pie>

@@ -8,7 +8,7 @@ export default function CreateOrder() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [items, setItems] = useState([
-    { type: "Shirt", quantity: 1, price: 50 },
+    { type: "T-Shirt", quantity: 1, price: 99 },
   ]);
   const [loading, setLoading] = useState(false);
 
@@ -20,12 +20,18 @@ export default function CreateOrder() {
     setItems(items.filter((_, i) => i !== index));
   };
 
+  // ✅ Only total (no tax/delivery)
   const total = items.reduce(
     (sum, i) => sum + i.quantity * i.price,
     0
   );
 
   const submit = async () => {
+    if (!name || !phone) {
+      toast.error("Enter name & phone");
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -33,6 +39,7 @@ export default function CreateOrder() {
         customerName: name,
         phone,
         items,
+        total, // only total
       });
 
       toast.success(`Order Created! ID: ${res.data.id}`);
@@ -51,7 +58,7 @@ export default function CreateOrder() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white p-8 rounded-2xl shadow-sm border border-gray-300 max-w-3xl mx-auto relative"
+      className="bg-white p-8 rounded-2xl shadow-sm border border-gray-300 max-w-4xl mx-auto relative"
     >
       <h2 className="text-2xl font-semibold mb-6">
         Create Order
@@ -82,18 +89,25 @@ export default function CreateOrder() {
         </div>
       </div>
 
-      {/* Garments */}
+      {/* Garments Section */}
       <div className="mb-6">
         <h3 className="font-medium mb-4">Garments</h3>
+
+        {/* Header */}
+        <div className="grid grid-cols-4 text-sm text-gray-500 mb-2 px-2">
+          <p>Type</p>
+          <p>Quantity</p>
+          <p>Price</p>
+          <p className="text-center">Action</p>
+        </div>
 
         {items.map((item, i) => (
           <div
             key={i}
-            className="border border-gray-300 rounded-xl p-4 mb-3 bg-gray-50 flex items-center gap-3"
+            className="grid grid-cols-4 gap-3 border border-gray-300 rounded-xl p-4 mb-3 bg-gray-50 items-center"
           >
             <input
-              placeholder="Type"
-              className="border border-gray-300 p-2 rounded w-1/3"
+              className="border border-gray-300 p-2 rounded"
               value={item.type}
               onChange={(e) => {
                 const newItems = [...items];
@@ -104,8 +118,7 @@ export default function CreateOrder() {
 
             <input
               type="number"
-              placeholder="Qty"
-              className="border border-gray-300 p-2 rounded w-1/4"
+              className="border border-gray-300 p-2 rounded"
               value={item.quantity}
               onChange={(e) => {
                 const newItems = [...items];
@@ -116,8 +129,7 @@ export default function CreateOrder() {
 
             <input
               type="number"
-              placeholder="Price"
-              className="border border-gray-300 p-2 rounded w-1/4"
+              className="border border-gray-300 p-2 rounded"
               value={item.price}
               onChange={(e) => {
                 const newItems = [...items];
@@ -126,11 +138,11 @@ export default function CreateOrder() {
               }}
             />
 
-            {/* 🔴 DELETE BUTTON */}
-            <div className="flex justify-center items-center w-10 h-10">
+            {/* Delete */}
+            <div className="flex justify-center">
               <button
                 onClick={() => removeItem(i)}
-                className="bg-red-100 hover:bg-red-200 text-red-600 rounded-full p-2 transition cursor-pointer flex items-center justify-center"
+                className="bg-red-100 hover:bg-red-200 text-red-600 rounded-full p-2 transition cursor-pointer"
               >
                 <Trash2 size={18} />
               </button>
@@ -140,28 +152,28 @@ export default function CreateOrder() {
 
         <button
           onClick={addItem}
-          className="text-blue-600 hover:underline text-sm cursor-pointer "
+          className="text-blue-600 hover:underline text-sm cursor-pointer"
         >
           + Add Garment
         </button>
       </div>
 
       {/* Total */}
-      <div className="flex justify-between items-center mb-6 border-t pt-4">
-        <p className="text-gray-600">Total Amount</p>
-        <p className="text-xl font-bold">₹{total}</p>
+      <div className="flex justify-between font-semibold text-lg border-t pt-4">
+        <p>Total Amount</p>
+        <p>₹{total}</p>
       </div>
 
       {/* Submit */}
       <button
         onClick={submit}
         disabled={loading}
-        className="bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg w-full font-medium cursor-pointer"
+        className="bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg w-full font-medium mt-6 cursor-pointer"
       >
         {loading ? "Submitting..." : "Submit Order"}
       </button>
 
-      {/* Loading Overlay */}
+      {/* Loading */}
       {loading && (
         <div className="absolute inset-0 bg-white/60 flex items-center justify-center rounded-2xl">
           <div className="animate-pulse text-gray-600">
